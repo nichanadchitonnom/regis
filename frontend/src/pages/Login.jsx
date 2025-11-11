@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/studentport_logo.png";
 import "./Login.css";
 
@@ -8,8 +8,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  // ตรวจสอบการกรอกข้อมูลก่อนส่ง
+  // ✅ ตรวจสอบการกรอกข้อมูลก่อนส่ง
   const validate = () => {
     const e = {};
     if (!email) e.email = "กรอกอีเมลก่อนนะ";
@@ -30,37 +31,57 @@ export default function Login() {
     try {
       const res = await fetch("http://127.0.0.1:3000/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
-
       if (!res.ok) {
         alert(data.message || "เข้าสู่ระบบไม่สำเร็จ");
-        setLoading(false);
         return;
       }
 
-      // ✅ ถ้า login สำเร็จ
-      console.log("Login success:", data);
+      console.log("✅ Login success:", data);
 
-      // เก็บ token + role ใน localStorage
+      // ✅ เก็บ token + role + email + user (สำหรับ Sidebar)
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.user.role);
+      localStorage.setItem("email", data.user.email);
+
+      // 👇 เพิ่มบันทึก user object สำหรับ SidebarStu
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          name: data.user.displayName || data.user.name || "Unknown User",
+          role: data.user.role,
+          email: data.user.email,
+        })
+      );
 
       alert("เข้าสู่ระบบสำเร็จ!");
 
-      // ✅ แยกเส้นทางตาม role
-      if (data.user.role === "SuperAdmin" || data.user.role === "AdvisorAdmin") {
-        window.location.href = "/user-approval"; // ไปหน้าอนุมัติผู้ใช้
-      } else {
-        window.location.href = "/dashboard"; // ไปหน้า dashboard (ของ user ปกติ)
+      // ✅ redirect ตาม role
+      const role = data.user.role;
+      switch (role) {
+        case "SuperAdmin":
+          navigate("/super/verify");
+          break;
+        case "AdvisorAdmin":
+          navigate("/advisor/veri-portfolio");
+          break;
+        case "Recruiter":
+          navigate("/recruiter/home");
+          break;
+        case "Student":
+          navigate("/student/home");
+          break;
+        default:
+          alert("ไม่พบสิทธิ์ของผู้ใช้ (role ไม่ถูกต้อง)");
+          navigate("/login");
+          break;
       }
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("❌ Login error:", err);
       alert("เกิดข้อผิดพลาดที่ฝั่ง client");
     } finally {
       setLoading(false);

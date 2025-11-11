@@ -1,0 +1,160 @@
+/* 🔹 กล่องการ์ดหลัก */
+.normal-card {
+  border: 2px solid #e0e0e0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.normal-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.12);
+}
+
+/* 🔹 หัวการ์ด */
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px 0;
+}
+.card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+}
+
+/* 🔹 ภาพหลัก */
+.card-img {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  display: block;
+  border-radius: 10px;
+  margin: 12px auto 0;
+}
+
+/* 🔹 เนื้อหา */
+.card-content {
+  padding: 14px 20px 20px;
+  position: relative;
+  color: #333;
+  font-family: "Poppins", sans-serif;
+}
+
+/* 🔹 คำบรรยาย */
+.desc {
+  margin-top: 6px;
+  line-height: 1.5;
+  color: #555;
+}
+
+/* 🔹 Badge แสดงสถานะ */
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+}
+.status-badge.draft { background: #e0e0e0; color: #444; }
+.status-badge.pending { background: #fff7ce; color: #b99d00; border-color: #f9b800; }
+.status-badge.approved { background: #e0ffe9; color: #0b864b; border-color: #00c853; }
+.status-badge.rejected { background: #ffe6e6; color: #d32f2f; border-color: #f44336; }
+.status-badge.inprocess { background: #b4e1ff; color: #457391; border-color: #487797; }
+
+/* 🔹 ปุ่ม Edit / Delete */
+/* 🔹 ปุ่ม Edit / Delete */
+.edit-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.edit-buttons button,
+.edit-buttons a {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 30px; /* ✅ ขยายขนาดอีโมจิ */
+  cursor: pointer;
+  border: none;
+  background: transparent; /* ✅ ไม่มีพื้นหลัง */
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+/* ปุ่ม Edit */
+.edit-btn {
+  color: #5b8db8; /* น้ำเงินอ่อนแบบเรียบ */
+}
+.edit-btn:hover {
+  transform: scale(1.15);
+  filter: brightness(1.2);
+}
+
+/* ปุ่ม Delete */
+.delete-btn {
+  color: #ff6b6b; /* แดงนุ่ม */
+  background: none !important; /* ✅ ไม่มีพื้นหลังเด็ดขาด */
+}
+.delete-btn:hover {
+  transform: scale(1.15);
+  filter: brightness(1.2);
+}
+
+/* 🔹 Visibility Switch */
+.visibility-control {
+  position: absolute;
+  bottom: 10px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.switch-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+  font-size: 13px;
+}
+.switch-label input { display: none; }
+
+.slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #ccc;
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+.slider::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+input:checked + .slider {
+  background: #22c55e;
+}
+input:checked + .slider::after {
+  transform: translateX(20px);
+}
+
+.private-text, .public-text {
+  color: #555;
+  font-size: 12px;
+}
