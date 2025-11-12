@@ -26,21 +26,18 @@ const PortfolioSchema = new mongoose.Schema(
 
     university: {
       type: String,
-      required: true,
     },
     year: {
       type: Number,
-      required: true,
-      min: 2020
+      min: 2020,
     },
 
     category: {
       type: String,
-      required: true,
       enum: [
         "AI","ML","BI","QA","UX/UI","Database","Software Engineering",
         "IOT","Gaming","Web Development","Coding","Data Science",
-        "Hackathon","Bigdata","Data Analytics",
+        "Hackathon","Bigdata","Data Analytics",``
        ]
     },cover_img: {
       type: String,
