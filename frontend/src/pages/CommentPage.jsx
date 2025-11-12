@@ -1,14 +1,10 @@
 // src/pages/CommentPage.jsx
-import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import "./CommentPage.css";
 
-const API_BASE =
-  process.env.REACT_APP_API_BASE || "http://localhost:3000";
-const USE_BACKEND =
-  String(process.env.REACT_APP_USE_BACKEND || "true").toLowerCase() === "true";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:3000";
 
-// แสดง 1 บล็อกคอมเมนต์
 function CommentBlock({ author, role, text, initial }) {
   return (
     <div className="comment-block">
@@ -25,225 +21,181 @@ function CommentBlock({ author, role, text, initial }) {
 }
 
 export default function CommentPage() {
-  const { id, projectId } = useParams();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { projectId } = useParams();               // path: /project/:projectId/comments
+  const navigate = useNavigate();
 
-  const isPublic = useMemo(() => location.pathname.includes("/public"), [location]);
-  const pid = id || projectId;
+  const [loading, setLoading]   = useState(true);
+  const [project, setProject]   = useState(null);
+  const [comments, setComments] = useState([]);
+  const [imgIndex, setImgIndex] = useState(0);
+  const [newText, setNewText]   = useState("");
+  const [posting, setPosting]   = useState(false);
+  const MAX_LEN = 300;
 
-  // (State... ถูกต้องครับ)
-  const [loading, setLoading] = useState(true);
-  const [project, setProject] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [imgIndex, setImgIndex] = useState(0);
-  const [newText, setNewText] = useState("");
-  const [posting, setPosting] = useState(false);
-  const MAX_LEN = 300; 
+  async function fetchDetail() {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token") || "";
+      const res = await fetch(`${API_BASE}/api/portfolio/detail/${projectId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
 
-  // โหลดข้อมูลโปรเจ็กต์ + คอมเมนต์
-  useEffect(() => {
-    let alive = true;
+      if (res.status === 401) {
+        // ต้องล็อกอินก่อนถึงดู internal ได้
+        navigate("/login");
+        return;
+      }
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(`Fetch detail failed (${res.status}). ${t.slice(0,120)}`);
+      }
 
-    async function load() {
-      setLoading(true);
-      try {
-        // 🚨 2. (ลบม็อค) บล็อก `if (!USE_BACKEND)` ถูกลบทิ้งไปแล้ว
+      const data = await res.json();
 
-        const url = isPublic
-          ? `${API_BASE}/api/portfolio/${pid}/public`
-          : `${API_BASE}/api/portfolio/detail/${pid}`;
+      // map ฟิลด์พื้นฐานให้ UI ใช้งานง่าย
+      const images =
+        (Array.isArray(data.images) && data.images.length && data.images) ||
+        (Array.isArray(data.files) &&
+          data.files.filter((p) => /\.(png|jpe?g|gif|webp)$/i.test(String(p)))) ||
+        (data.cover_img ? [data.cover_img] : []);
 
-        // 🚨 3. (แก้ 404/401) เพิ่ม Token (บัตรผ่าน) ใน headers
-        const token = localStorage.getItem('token'); // (หรือใช้ getAuthHeader())
-        const res = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+      const norm = (x) =>
+        x?.startsWith("http") ? x : `${API_BASE}${x?.startsWith("/") ? "" : "/"}${x || ""}`;
 
-        if (!res.ok) {
-          const t = await res.text().catch(() => "");
-          throw new Error(`Fetch failed (${res.status}). ${t.slice(0, 120)}`);
-        }
-        const data = await res.json();
-        
-        // (map ฟิลด์ให้ตรง... ถูกต้องครับ)
-        const mapped = {
-          title: data.title,
-          name: data.owner?.displayName || data.name || "",
-          university: data.owner?.university || data.university || "",
-          description: data.description || data.desc || "",
-          images: data.images?.length ? data.images.map(x => (x.startsWith("http") ? x : `${API_BASE}${x}`)) : [],
-        };
-        const mappedComments = (data.comments || []).map((c, i) => ({
-          id: c._id || i,
-          author: c.user?.displayName || c.author || "Unknown",
-          role: c.role || c.user?.role || "guest",
-          text: c.text || "",
-          initial: (c.user?.displayName || c.author || "U").slice(0, 1).toUpperCase(),
-        }));
+      setProject({
+        id: data._id || data.id || projectId,
+        title: data.title || "-",
+        name: data.owner?.displayName || data.name || "-",
+        university: data.owner?.university || data.university || "-",
+        description: data.description || data.desc || "-",
+        images: images.map(norm),
+      });
 
-        if (!alive) return;
-        setProject(mapped);
-        setComments(mappedComments);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    }
+      // ถ้าหลังบ้านแนบ comments มากับ detail ก็อ่านจาก data.comments
+      const list = Array.isArray(data.comments) ? data.comments : [];
+      setComments(
+        list.map((c, i) => ({
+          id: c._id || String(i),
+          author: c.user?.displayName || c.author || "Unknown",
+          role: c.user?.role || c.role || "guest",
+          text: c.text || "",
+          initial: (c.user?.displayName || c.author || "U").slice(0,1).toUpperCase(),
+        }))
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-    load();
-    return () => { alive = false; };
-  }, [pid, isPublic]);
+  useEffect(() => { fetchDetail(); /* eslint-disable-next-line */ }, [projectId]);
 
-  const total = project?.images?.length || 0;
+  async function onPost(e) {
+    e.preventDefault();
+    if (!newText.trim() || posting) return;
 
-  const onPost = async (e) => {
-    e.preventDefault();
-    if (isPublic) return; 
-    if (!newText.trim() || posting) return;
+    try {
+      setPosting(true);
+      const token = localStorage.getItem("token") || "";
+      if (!token) {
+        alert("โปรดล็อกอินก่อนแสดงความคิดเห็น");
+        navigate("/login");
+        return;
+      }
 
-    setPosting(true);
-    try {
-      // 🚨 4. (ลบม็อค) บล็อก `if (!USE_BACKEND)` ถูกลบทิ้งไปแล้ว
+      const res = await fetch(`${API_BASE}/api/portfolio/${projectId}/comment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text: newText.trim() }),
+      });
 
-      // 🚨 5. (แก้ 404/401) เพิ่ม Token (บัตรผ่าน) ใน headers
-      const token = localStorage.getItem('token'); // (หรือใช้ getAuthHeader())
-      const res = await fetch(`${API_BASE}/api/portfolio/${pid}/comment`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // <--- เพิ่มตรงนี้
-        },
-        body: JSON.stringify({ text: newText.trim() }),
-      });
+      if (res.status === 401) {
+        navigate("/login");
+        return;
+      }
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(`Post failed (${res.status}). ${t.slice(0,120)}`);
+      }
 
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        throw new Error(`Post failed (${res.status}). ${t.slice(0, 120)}`);
-      }
-      const data = await res.json();
-      
-      // (map comments... ถูกต้องครับ)
-      const mapped = (data.comments || []).map((c, i) => ({
-        id: c._id || i,
-        author: c.user?.displayName || "Unknown",
-        role: c.role || "guest",
-        text: c.text || "",
-        initial: (c.user?.displayName || "U").slice(0, 1).toUpperCase(),
-      }));
-      setComments(mapped);
-      setNewText("");
-    } catch (err) {
-      alert(err.message || "Post comment error");
-    } finally {
-      setPosting(false);
-    }
-  };
+      // โพสต์เสร็จ → รีเฟตช์ detail เพื่อให้คอมเมนต์ล่าสุดขึ้น
+      await fetchDetail();
+      setNewText("");
+    } catch (err) {
+      alert(err.message || "Post comment error");
+    } finally {
+      setPosting(false);
+    }
+  }
 
-  // (โค้ด return <div...> ... ถูกต้องหมดแล้วครับ)
-  if (loading) return <div className="loading-page">Loading…</div>;
-  if (!project) return <div className="error-page">Project not found.</div>;
-  
-  return (
-    <div className="comment-page-container">
-      <div className="header-row">
-        <h2 className="page-title">
-          {isPublic ? "Public Project" : "Project Detail"}
-        </h2>
+  if (loading)     return <div className="loading-page">Loading…</div>;
+  if (!project)    return <div className="error-page">Project not found.</div>;
+  const total = project.images.length;
 
-        <div className="status-right">
-          {/* สถานะ/เวลาส่ง – ถ้ามีข้อมูลก็แสดงได้ที่นี่ */}
-          <button className="back-button" onClick={() => navigate(-1)}>
-            ⬅️ Back
-          </button>
-        </div>
-      </div>
+  return (
+    <div className="comment-page-container">
+      <div className="header-row">
+        <h2 className="page-title">{project.title}</h2>
+        <button className="back-button" onClick={() => navigate(-1)}>⬅️ Back</button>
+      </div>
 
-      <div className="comment-page-grid">
-        {/* LEFT: รูป + รายละเอียด */}
-        <section className="project-display-section">
-          <div className="image-viewer">
-            <img
-              src={project.images?.[imgIndex] || "https://via.placeholder.com/900x520?text=No+Image"}
-              alt={`Project Image ${imgIndex + 1}`}
-              className="project-main-image"
-            />
+      <div className="comment-page-grid">
+        {/* LEFT: รูป + รายละเอียด */}
+        <section className="project-display-section">
+          <div className="image-viewer">
+            <img
+              src={project.images[imgIndex] || "https://via.placeholder.com/900x520?text=No+Image"}
+              alt={`Project Image ${imgIndex + 1}`}
+              className="project-main-image"
+            />
+            {total > 1 && (
+              <div className="image-pagination">
+                {project.images.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`dot ${i === imgIndex ? "active" : ""}`}
+                    onClick={() => setImgIndex(i)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
-            {imgIndex > 0 && (
-              <button
-                type="button"
-                className="nav-button prev-button"
-                onClick={() => setImgIndex(i => Math.max(i - 1, 0))}
-              >
-                ‹
-              </button>
-            )}
-            {imgIndex < total - 1 && (
-              <button
-                type="button"
-                className="nav-button next-button"
-                onClick={() =>
-                  setImgIndex(i => Math.min(i + 1, (project.images?.length || 1) - 1))
-                }
-              >
-                ›
-              </button>
-            )}
+          <div className="project-details">
+            <p><strong>Name:</strong> {project.name}</p>
+            <p><strong>University:</strong> {project.university}</p>
+            <p><strong>Description:</strong> {project.description}</p>
+          </div>
+        </section>
 
-            <div className="image-pagination">
-              {project.images?.map((_, i) => (
-                <span
-                  key={i}
-                  className={`dot ${i === imgIndex ? "active" : ""}`}
-                  onClick={() => setImgIndex(i)}
-                />
-              ))}
-            </div>
-          </div>
+        {/* RIGHT: คอมเมนต์ + ฟอร์ม */}
+        <aside className="comments-section">
+          {comments.length ? (
+            comments.map((c) => <CommentBlock key={c.id} {...c} />)
+          ) : (
+            <p style={{ opacity: 0.7 }}>No comments yet</p>
+          )}
 
-          <div className="project-details">
-            <p><strong>Title:</strong> {project.title}</p>
-            <p><strong>Name:</strong> {project.name}</p>
-            <p><strong>University:</strong> {project.university}</p>
-            <p><strong>Description:</strong> {project.description}</p>
-          </div>
-        </section>
-
-        {/* RIGHT: คอมเมนต์ + ฟอร์ม */}
-        <aside className="comments-section">
-          {comments.map((c) => (
-            <CommentBlock key={c.id} {...c} />
-          ))}
-
-          {/* ฟอร์มคอมเมนต์ — ปิดในโหมด public */}
-          {!isPublic && (
-            <form className="comment-form" onSubmit={onPost}>
-              <textarea
-                value={newText}
-                onChange={(e) => {
-                  const v = e.target.value.slice(0, MAX_LEN);
-                  setNewText(v);
-                }}
-                placeholder="Add your comment here..."
-                rows={3}
-              />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <small style={{ opacity: 0.7 }}>
-                  {newText.length}/{MAX_LEN}
-                </small>
-                <button type="submit" disabled={!newText.trim() || posting}>
-                  {posting ? "Posting…" : "Post Comment"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          <div className="comments-placeholder">&lt;comments&gt;</div>
-        </aside>
-      </div>
-    </div>
-  );
+          <form className="comment-form" onSubmit={onPost}>
+            <textarea
+              value={newText}
+              onChange={(e) => setNewText(e.target.value.slice(0, MAX_LEN))}
+              placeholder="Add your comment here..."
+              rows={3}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <small style={{ opacity: 0.7 }}>{newText.length}/{MAX_LEN}</small>
+              <button type="submit" disabled={!newText.trim() || posting}>
+                {posting ? "Posting…" : "Post Comment"}
+              </button>
+            </div>
+          </form>
+        </aside>
+      </div>
+    </div>
+  );
 }
