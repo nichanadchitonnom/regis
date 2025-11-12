@@ -2,16 +2,19 @@
 const BASE = "http://localhost:3000"; // ใช้ CRA proxy (setupProxy ชี้ไป :3000 อยู่แล้ว)
 
 export async function editPortfolio(id, formData, token) {
+  if (!token) throw new Error("No token found");
+
   const res = await fetch(`${BASE}/api/portfolio/${id}/edit`, {
     method: "PUT",
-    headers: token
-      ? { Authorization: `Bearer ${token}` }
-      : undefined, // ถ้ามี token ก็แนบได้
-    body: formData, // อย่าใส่ Content-Type เอง ให้ browser จัดให้
+    headers: {
+      Authorization: `Bearer ${token}`, // ต้องแนบ token
+    },
+    body: formData, // อย่าใส่ Content-Type เอง
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || "Update failed");
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Upload failed");
+
   return data;
 }
 
