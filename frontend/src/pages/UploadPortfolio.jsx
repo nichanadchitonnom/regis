@@ -31,25 +31,30 @@ export default function UploadPortfolio() {
   const [loading, setLoading] = useState(false);
 
   const onFilesChange = (files) => setForm((f) => ({ ...f, files }));
+  console.log("category:", form.category, typeof form.category);
+
 
   function buildFormData(submitFlag /* "true" | "false" */) {
-    const fd = new FormData();
-    // ชื่อฟิลด์ต้องตรง backend
-    fd.append("title", form.title.trim());
-    fd.append("university", form.university);
-    fd.append("year", form.year);         // backend คาด "year"
-    fd.append("category", form.category); // backend คาด "category"
-    fd.append("desc", form.description);  // backend คาด "desc"
-    fd.append("submit", submitFlag);      // "true" => pending, "false" => draft
+  const fd = new FormData();
+  fd.append("title", form.title.trim());
+  fd.append("university", form.university);
+  fd.append("year", form.year);
+  fd.append("category", form.category);
+  fd.append("desc", form.description);
+  fd.append("submit", submitFlag);
 
-    if (coverImage) {
+  if (coverImage) {
     fd.append("cover_img", coverImage);
-    }
-
-    form.files.forEach((file) => fd.append("portfolioFiles", file)); // ชื่อคีย์ไฟล์
-    fd.append("submit", submitFlag);      // "true" => pending, "false" => draft
-    return fd;
   }
+
+  // append เฉพาะ File objects
+  form.files.forEach((f) => {
+    if (f.file) fd.append("portfolioFiles", f.file);
+  });
+
+  return fd;
+}
+
 
   // ตรวจข้อมูลพื้นฐานก่อนส่ง
   function validateBeforeSend(isSubmit) {
@@ -224,79 +229,56 @@ export default function UploadPortfolio() {
           {/* Year */}
           <div>
             <label style={{ color: "white", display: "block", marginBottom: 6 }}>Year of project/work/prize :</label>
-            <select
-              value={form.year}
-              onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
-              style={{
-                width: "100%",
-                padding: 12,
-                borderRadius: 8,
-                border: "1px solid #ccc",
-                boxSizing: "border-box",
-                background: "#fff",
-              }}
-            >
-              <option value="">Select...</option>
-              {YEAR_OPTIONS.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
+            <select value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))} style={{ width: "100%", padding: 12, borderRadius: 8, border: "1px solid #ccc", boxSizing: "border-box", background: "#fff", }} > <option value="">Select...</option> {YEAR_OPTIONS.map((y) => ( <option key={y} value={y}> {y} </option> ))} </select>
           </div>
 
           {/* Category */}
-          <div>
-            <label style={{ color: "white", display: "block", marginBottom: 6 }}>Category :</label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              style={{
-                width: "100%",
-                padding: 12,
-                borderRadius: 8,
-                border: "1px solid #ccc",
-                boxSizing: "border-box",
-                background: "#fff",
-              }}
-            >
-              <option value="">Select...</option>
-              {CATEGORY_OPTIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
+<div>
+  <label style={{ color: "white", display: "block", marginBottom: 6 }}>Category :</label>
+  <select
+    value={form.category}
+    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+    style={{
+      width: "100%",
+      padding: 12,
+      borderRadius: 8,
+      border: "1px solid #ccc",
+      boxSizing: "border-box",
+      background: "#fff",
+    }}
+  >
+    <option value="">Select...</option>
+    {CATEGORY_OPTIONS.map((c) => (
+      <option key={c} value={c}>
+        {c}
+      </option>
+    ))}
+  </select>
+</div>
+
 
           {/* Cover Image */}
-          <div>
-            <label style={{ color: "white", display: "block", marginBottom: 6 }}>
-              Cover Image (Only image):
-          </label>
-          <input
-              type="file"
-              accept="image/*"   // กำหนดให้เลือกได้แค่ไฟล์รูป
-              onChange={(e) => setCoverImage(e.target.files[0] || null)}
-              style={{
-                width: "100%",
-                padding: 12,
-                borderRadius: 8,
-                border: "1px solid #ccc",
-                boxSizing: "border-box",
-                background: "#fff",
-              }}
-            />
-          </div>
+<div>
+  <label style={{ color: "white", display: "block", marginBottom: 6 }}>Cover Image:</label>
+  <input
+    type="file"
+    accept="image/*"
+    onChange={(e) => setCoverImage(e.target.files[0] || null)}
+    style={{ width: "100%", padding: 12, borderRadius: 8, border: "1px solid #ccc", background: "#fff" }}
+  />
+  {/* ไม่โชว์ preview หรือชื่อ */}
+</div>
 
+{/* Portfolio Files */}
+<div>
+  <label style={{ color: "white", display: "block", marginBottom: 6 }}>Attach Files:</label>
+  <FileInput
+    files={form.files}
+    onChange={onFilesChange}
+    showPreview={false} // กำหนดไม่โชว์รูป
+  />
+</div>
 
-          {/* Files */}
-          <div>
-            <label style={{ color: "white", display: "block", marginBottom: 6 }}>
-              Attach Files (อย่างน้อย 1 รูป สูงสุด 10 รูป):
-            </label>
-            <FileInput files={form.files} onChange={onFilesChange} />
-          </div>
 
           {/* Description */}
           <div>
