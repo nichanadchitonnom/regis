@@ -2,18 +2,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SidebarAdvi from "../AdminAdvisor/SidebarAdvi";
-import {
-  getPendingPortfolios,
-  advisorApprovePortfolio,
-  advisorRejectPortfolio,
-} from "../../api/adminApi";
+import { getPendingPortfolios } from "../../api/adminApi";
 
 export default function VerifyPortfolioAdvisor() {
   const navigate = useNavigate();
   const [portfolios, setPortfolios] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ดึงข้อมูลจาก backend ตอนเปิดหน้า
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -27,38 +22,6 @@ export default function VerifyPortfolioAdvisor() {
     };
     fetchData();
   }, []);
-
-  // เริ่มรีวิว (อนุมัติ = ส่งต่อให้ SuperAdmin)
-  const handleStartReview = async (id) => {
-    try {
-      await advisorApprovePortfolio(id);
-      alert("✅ ส่งต่อให้ SuperAdmin แล้ว!");
-      // อัปเดตสถานะในหน้า
-      setPortfolios((prev) =>
-        prev.map((p) =>
-          p._id === id ? { ...p, status: "in_process" } : p
-        )
-      );
-    } catch (err) {
-      alert("❌ ไม่สามารถส่งต่อได้");
-      console.error(err);
-    }
-  };
-
-  // ปฏิเสธ
-  const handleReject = async (id) => {
-    const feedback = prompt("กรอกเหตุผลที่ Reject:");
-    if (!feedback) return;
-    try {
-      await advisorRejectPortfolio(id, feedback);
-      alert("❌ ปฏิเสธพอร์ตแล้ว");
-      // ลบออกจาก list
-      setPortfolios((prev) => prev.filter((p) => p._id !== id));
-    } catch (err) {
-      alert("Reject ไม่สำเร็จ");
-      console.error(err);
-    }
-  };
 
   if (loading) return <p>Loading...</p>;
 
@@ -91,26 +54,16 @@ export default function VerifyPortfolioAdvisor() {
                   <td>{p.title}</td>
                   <td>{p.owner?.displayName || "Unknown"}</td>
                   <td>
-                    <span
-                      className={`status-badge ${p.status.toLowerCase()}`}
-                    >
+                    <span className={`status-badge ${p.status.toLowerCase()}`}>
                       {p.status}
                     </span>
                   </td>
                   <td>
                     <button
-                      className="btn-approve"
-                      disabled={p.status !== "pending"}
-                      onClick={() => handleStartReview(p._id)}
+                      className="btn-neutral"
+                      onClick={() => navigate(`/advisor/review/${p._id}`)}
                     >
-                      Forward
-                    </button>
-                    <button
-                      className="btn-reject"
-                      disabled={p.status !== "pending"}
-                      onClick={() => handleReject(p._id)}
-                    >
-                      Reject
+                      Review
                     </button>
                   </td>
                 </tr>
