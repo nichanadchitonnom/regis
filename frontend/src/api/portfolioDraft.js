@@ -24,3 +24,20 @@ export async function uploadPortfolioDraft(formData, token) {
 
   return data; // { message, data }
 }
+
+export async function editPortfolioDraft(id, formData, token) {
+  if (!token) throw new Error("No token found");
+
+  const res = await fetch(`${BASE}/api/portfolio/${id}/edit`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData, // Browser จะ set Content-Type ให้เอง
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Draft upload failed");
+
+  return data;
+}
