@@ -147,18 +147,45 @@ export default function SuperReview() {
         </div>
 
         {/* Files */}
-        <div style={{ marginBottom: 15 }}>
-          <label>Attached Files:</label>
-          {files.length === 0 ? <p>-</p> : (
-            <ul style={{ paddingLeft: 20 }}>
-              {files.map((f, idx) => (
-                <li key={idx}>
-                  <a href={f?.url || "#"} target="_blank" rel="noreferrer">{fileName(f)}</a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+<div style={{ marginBottom: 15 }}>
+  <label>Attached Files:</label>
+  {files.length === 0 ? (
+    <p>-</p>
+  ) : (
+    <ul style={{ paddingLeft: 20 }}>
+      {files.map((f, idx) => {
+        // ✅ ถ้า f เป็น object ให้ดึง f.url หรือ f.path
+        let filePath =
+          typeof f === "string"
+            ? f
+            : f?.url || f?.path || "";
+
+        // ✅ ถ้าไฟล์ไม่มี host prefix ให้ต่อกับ localhost
+        if (filePath && !filePath.startsWith("http")) {
+          filePath = `http://localhost:3000/${filePath.replace(/\\/g, "/")}`;
+        }
+
+        const name = typeof f === "string"
+          ? f.split(/[\\/]/).pop()
+          : f?.name || f?.originalname || "file";
+
+        return (
+          <li key={idx}>
+            <a
+              href={filePath}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "#007bff", textDecoration: "underline" }}
+            >
+              {name}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+</div>
+
 
         {/* Description */}
         <div style={{ marginBottom: 15 }}>
